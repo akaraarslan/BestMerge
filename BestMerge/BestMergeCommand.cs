@@ -3,8 +3,12 @@ using System.ComponentModel.Design;
 using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
+using BestMerge.Core;
+using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
+using Microsoft.VisualStudio.TeamFoundation;
+using Microsoft.VisualStudio.TeamFoundation.VersionControl;
 using Task = System.Threading.Tasks.Task;
 
 namespace BestMerge
@@ -12,7 +16,7 @@ namespace BestMerge
     /// <summary>
     /// Command handler
     /// </summary>
-    internal sealed class BestMergeCommand
+    internal sealed class BestMergeCommand : IPackage
     {
         /// <summary>
         /// Command ID.
@@ -88,6 +92,9 @@ namespace BestMerge
         /// <param name="e">Event args.</param>
         private void Execute(object sender, EventArgs e)
         {
+
+
+
             //ThreadHelper.ThrowIfNotOnUIThread();
             //string message = string.Format(CultureInfo.CurrentCulture, "Inside {0}.MenuItemCallback()", this.GetType().FullName);
             //string title = "BestMergeCommand";
@@ -102,8 +109,30 @@ namespace BestMerge
             //    OLEMSGDEFBUTTON.OLEMSGDEFBUTTON_FIRST);
 
 
-           var mainForm = new FindForm(); 
+            var dte = Package.GetGlobalService(typeof(DTE)) as DTE;
+            if (dte == null)
+                return;
+
+            var foundationServerExt =
+                dte.GetObject("Microsoft.VisualStudio.TeamFoundation.TeamFoundationServerExt") as
+                    TeamFoundationServerExt;
+            _versionControl =
+                (VersionControlExt)
+                dte.GetObject("Microsoft.VisualStudio.TeamFoundation.VersionControl.VersionControlExt");
+
+            var mainForm = new FindForm
+            {
+                DefaultCollectionUrl = foundationServerExt.ActiveProjectContext.DomainUri,
+                CallerPackage = this
+            };
+
             mainForm.Show();
+
+        }
+        private VersionControlExt _versionControl;
+        public void OpenChangeSetDetails(int changeSetId)
+        {
+            _versionControl.ViewChangesetDetails(changeSetId);
         }
     }
 }

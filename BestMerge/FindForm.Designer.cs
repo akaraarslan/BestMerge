@@ -32,7 +32,6 @@ namespace BestMerge
         /// </summary>
         private void InitializeComponent()
         {
-            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(FindForm));
             this.cbTeamProjectCollection = new System.Windows.Forms.ComboBox();
             this.cbMergeTo = new System.Windows.Forms.ComboBox();
             this.btnGetChangesets = new System.Windows.Forms.Button();
@@ -637,7 +636,7 @@ namespace BestMerge
             this.bwWorker.DoWork += new System.ComponentModel.DoWorkEventHandler(this.BwWorkerDoWork);
             this.bwWorker.RunWorkerCompleted += new System.ComponentModel.RunWorkerCompletedEventHandler(this.BwWorkerRunWorkerCompleted);
             // 
-            // AppForm
+            // FindForm
             // 
             this.AcceptButton = this.btnGetChangesets;
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -646,9 +645,8 @@ namespace BestMerge
             this.Controls.Add(this.statusStrip);
             this.Controls.Add(this.tableLayoutPanel1);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
-            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Margin = new System.Windows.Forms.Padding(2);
-            this.Name = "AppForm";
+            this.Name = "FindForm";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "Best Merge";
             this.Load += new System.EventHandler(this.FindFormLoad);
