@@ -213,7 +213,11 @@ namespace BestMerge.Core
 
             return projectBranches;
         }
-
+        //todo just changset search
+        //todo file tab
+        //todo regex
+        //todo copytoclipboard
+        //todo search cancellation
         public List<TfsMergeCandidate> GetMergeCandidates(string fromBranch, string toBranch, string user,
            DateTime? startDate, DateTime? endDate, string criteria)
         {
