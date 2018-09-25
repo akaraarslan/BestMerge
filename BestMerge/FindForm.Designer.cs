@@ -35,6 +35,7 @@ namespace BestMerge
             this.cbTeamProjectCollection = new System.Windows.Forms.ComboBox();
             this.cbMergeTo = new System.Windows.Forms.ComboBox();
             this.btnGetChangesets = new System.Windows.Forms.Button();
+            this.btnCancel = new System.Windows.Forms.Button();
             this.cbTeamProjectContributors = new System.Windows.Forms.ComboBox();
             this.dpFrom = new System.Windows.Forms.DateTimePicker();
             this.dpTo = new System.Windows.Forms.DateTimePicker();
@@ -122,7 +123,20 @@ namespace BestMerge
             this.btnGetChangesets.TabIndex = 3;
             this.btnGetChangesets.Text = "Get Changesets";
             this.btnGetChangesets.UseVisualStyleBackColor = true;
-            this.btnGetChangesets.Click += new System.EventHandler(this.BtnGetChangesetsClick);
+            this.btnGetChangesets.Click += new System.EventHandler(this.BtnGetChangesets_Click);
+            // 
+            // btnCancel
+            // 
+            this.btnCancel.AutoSize = true;
+            this.btnCancel.Font = new System.Drawing.Font("Tahoma", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(162)));
+            this.btnCancel.Location = new System.Drawing.Point(251, 195);
+            this.btnCancel.Margin = new System.Windows.Forms.Padding(2);
+            this.btnCancel.Name = "btnCancel";
+            this.btnCancel.Size = new System.Drawing.Size(80, 30);
+            this.btnCancel.TabIndex = 3;
+            this.btnCancel.Text = "Cancel";
+            this.btnCancel.UseVisualStyleBackColor = true;
+            this.btnCancel.Click += new System.EventHandler(this.BtnCancel_Click);
             // 
             // cbTeamProjectContributors
             // 
@@ -266,6 +280,7 @@ namespace BestMerge
             this.tableLayoutPanel1.Controls.Add(this.lwChangesets, 1, 1);
             this.tableLayoutPanel1.Controls.Add(this.label10, 2, 3);
             this.tableLayoutPanel1.Controls.Add(this.btnGetChangesets, 0, 1);
+            this.tableLayoutPanel1.Controls.Add(this.btnCancel, 0, 1);
             this.tableLayoutPanel1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.tableLayoutPanel1.Location = new System.Drawing.Point(0, 0);
             this.tableLayoutPanel1.Margin = new System.Windows.Forms.Padding(2);
@@ -285,7 +300,7 @@ namespace BestMerge
             this.label13.AutoSize = true;
             this.label13.Font = new System.Drawing.Font("Tahoma", 8F, System.Drawing.FontStyle.Italic);
             this.label13.ForeColor = System.Drawing.SystemColors.ControlText;
-            this.label13.Location = new System.Drawing.Point(6, 481);
+            this.label13.Location = new System.Drawing.Point(251, 481);
             this.label13.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.label13.Name = "label13";
             this.label13.Size = new System.Drawing.Size(217, 13);
@@ -297,7 +312,7 @@ namespace BestMerge
             this.label11.AutoSize = true;
             this.label11.Font = new System.Drawing.Font("Tahoma", 8F, System.Drawing.FontStyle.Italic);
             this.label11.ForeColor = System.Drawing.SystemColors.ControlText;
-            this.label11.Location = new System.Drawing.Point(251, 481);
+            this.label11.Location = new System.Drawing.Point(6, 481);
             this.label11.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.label11.Name = "label11";
             this.label11.Size = new System.Drawing.Size(202, 13);
@@ -422,7 +437,7 @@ namespace BestMerge
             this.cbTeamProject.Name = "cbTeamProject";
             this.cbTeamProject.Size = new System.Drawing.Size(225, 22);
             this.cbTeamProject.TabIndex = 2;
-            this.cbTeamProject.SelectedIndexChanged += new System.EventHandler(this.CbTeamProjectSelectedIndexChanged);
+            this.cbTeamProject.SelectedIndexChanged += new System.EventHandler(this.CbTeamProject_SelectedIndexChanged);
             // 
             // cbMergeFrom
             // 
@@ -435,7 +450,7 @@ namespace BestMerge
             this.cbMergeFrom.Name = "cbMergeFrom";
             this.cbMergeFrom.Size = new System.Drawing.Size(225, 22);
             this.cbMergeFrom.TabIndex = 2;
-            this.cbMergeFrom.SelectedIndexChanged += new System.EventHandler(this.CbMergeFromSelectedIndexChanged);
+            this.cbMergeFrom.SelectedIndexChanged += new System.EventHandler(this.CbMergeFrom_SelectedIndexChanged);
             // 
             // label2
             // 
@@ -595,9 +610,9 @@ namespace BestMerge
             this.lwChangesets.TabIndex = 9;
             this.lwChangesets.UseCompatibleStateImageBehavior = false;
             this.lwChangesets.View = System.Windows.Forms.View.Details;
-            this.lwChangesets.ColumnClick += new System.Windows.Forms.ColumnClickEventHandler(this.LwChangesetsColumnClick);
-            this.lwChangesets.DoubleClick += new System.EventHandler(this.LwChangesetsDoubleClick);
-            this.lwChangesets.KeyDown += new System.Windows.Forms.KeyEventHandler(this.LwChangesetsKeyDown);
+            this.lwChangesets.ColumnClick += new System.Windows.Forms.ColumnClickEventHandler(this.LwChangesets_ColumnClick);
+            this.lwChangesets.DoubleClick += new System.EventHandler(this.LwChangesets_DoubleClick);
+            this.lwChangesets.KeyDown += new System.Windows.Forms.KeyEventHandler(this.LwChangesets_KeyDown);
             // 
             // columnHeader1
             // 
@@ -633,8 +648,11 @@ namespace BestMerge
             // 
             // bwWorker
             // 
-            this.bwWorker.DoWork += new System.ComponentModel.DoWorkEventHandler(this.BwWorkerDoWork);
-            this.bwWorker.RunWorkerCompleted += new System.ComponentModel.RunWorkerCompletedEventHandler(this.BwWorkerRunWorkerCompleted);
+            this.bwWorker.WorkerReportsProgress = true;
+            this.bwWorker.WorkerSupportsCancellation = true;
+            this.bwWorker.DoWork += new System.ComponentModel.DoWorkEventHandler(this.BwWorker_DoWork);
+            this.bwWorker.ProgressChanged += new System.ComponentModel.ProgressChangedEventHandler(this.BwWorker_ProgressChanged);
+            this.bwWorker.RunWorkerCompleted += new System.ComponentModel.RunWorkerCompletedEventHandler(this.BwWorker_RunWorkerCompleted);
             // 
             // FindForm
             // 
@@ -671,6 +689,7 @@ namespace BestMerge
         #endregion
 
         private Button btnGetChangesets;
+        private Button btnCancel;
         private BackgroundWorker bwWorker;
         private ComboBox cbMergeFrom;
         private ComboBox cbMergeTo;

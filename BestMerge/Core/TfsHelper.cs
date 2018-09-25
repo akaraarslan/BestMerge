@@ -12,6 +12,7 @@ using Microsoft.TeamFoundation.Framework.Client;
 using Microsoft.TeamFoundation.Framework.Common;
 using Microsoft.TeamFoundation.Server;
 using Microsoft.TeamFoundation.VersionControl.Client;
+using Microsoft.TeamFoundation.VersionControl.Common;
 
 namespace BestMerge.Core
 {
@@ -98,8 +99,8 @@ namespace BestMerge.Core
                 }
 
                 if (tfsProject.Branches != null)
-                { 
-                    tfsProject.Contributors = GetPrrojectContributorList(); 
+                {
+                    tfsProject.Contributors = GetPrrojectContributorList();
                     result.Add(tfsProject);
                 }
             }
@@ -109,7 +110,7 @@ namespace BestMerge.Core
 
         public List<string> GetPrrojectContributorList()
         {
-            var projecContributorList = new List<string>() {""};
+            var projecContributorList = new List<string>() { "" };
 
             IIdentityManagementService ims = _tfsProjectCollection.GetService<IIdentityManagementService>();
             var sids = ims.ReadIdentity(IdentitySearchFactor.AccountName, "Project Collection Valid Users", MembershipQuery.Expanded, ReadIdentityOptions.IncludeReadFromSource);
@@ -165,7 +166,7 @@ namespace BestMerge.Core
         public void GetUserList()
         {
             IIdentityManagementService ims = (IIdentityManagementService)_tfsProjectCollection.GetService(typeof(IIdentityManagementService));
-// get all valid users of the collection
+            // get all valid users of the collection
             TeamFoundationIdentity SIDS = ims.ReadIdentity(IdentitySearchFactor.AccountName, "Project Collection Valid Users", MembershipQuery.Expanded, ReadIdentityOptions.ExtendedProperties);
             List<string> ids = new List<string>();
             foreach (var member in SIDS.Members)
@@ -173,9 +174,9 @@ namespace BestMerge.Core
                 ids.Add(member.Identifier);
             }
 
-// get user objects for existing SIDS
+            // get user objects for existing SIDS
             TeamFoundationIdentity[][] UserId = ims.ReadIdentities(IdentitySearchFactor.Identifier, ids.ToArray(), MembershipQuery.None, ReadIdentityOptions.ExtendedProperties);
-// convert to list
+            // convert to list
             List<TeamFoundationIdentity> UserIds = UserId.SelectMany(T => T).ToList();
 
             foreach (TeamFoundationIdentity user in UserIds)
@@ -199,7 +200,7 @@ namespace BestMerge.Core
                     DisplayName = branchObject.Properties.RootItem.Item
                 };
 
-                if ((uint) branchObject.ChildBranches.Length > 0U)
+                if ((uint)branchObject.ChildBranches.Length > 0U)
                 {
                     tfsBranch.ChildBranches = new List<TfsBranch>();
                     foreach (var itemIdentifier in branchObject.ChildBranches)
@@ -213,15 +214,12 @@ namespace BestMerge.Core
 
             return projectBranches;
         }
-        //todo just changset search
-        //todo file tab
-        //todo regex
-        //todo copytoclipboard
-        //todo search cancellation
+        
+        //todo regex 
+        //todo first query changset and look, is it merge candidate. maybe quicker
         public List<TfsMergeCandidate> GetMergeCandidates(string fromBranch, string toBranch, string user,
            DateTime? startDate, DateTime? endDate, string criteria)
         {
-
             var source =
                 _versionControl.GetMergeCandidates(fromBranch, toBranch, RecursionType.Full)
                     .Select(m => new TfsMergeCandidate
@@ -231,6 +229,7 @@ namespace BestMerge.Core
                         ChangesetId = m.Changeset.ChangesetId,
                         Comment = m.Changeset.Comment
                     });
+
             if (!string.IsNullOrEmpty(user))
                 source = source.Where(m => m.Owner.ToUpper().Contains(user.ToUpper()));
             if (startDate.HasValue)
@@ -270,20 +269,19 @@ namespace BestMerge.Core
 
         public GetStatus Merge(string fromBranch, string toBranch, string changesetId)
         {
-
             return Workspace.Merge(fromBranch, toBranch, VersionSpec.ParseSingleSpec(changesetId, null),
                 VersionSpec.ParseSingleSpec(changesetId, null), LockLevel.None, RecursionType.Full, MergeOptions.None);
         }
 
         public bool ResolveConflicts(string toBranch, Resolution resolution, bool autoCheckin, string comment)
         {
-
             var flag = true;
             var workspace = Workspace;
             var pathFilters = new string[1]
             {
-                            toBranch
+                toBranch
             };
+
             var num = 1;
             foreach (var conflict in workspace.QueryConflicts(pathFilters, num != 0))
             {
@@ -292,6 +290,7 @@ namespace BestMerge.Core
                     conflict.Resolution = resolution;
                     Workspace.ResolveConflict(conflict);
                 }
+
                 if (conflict.IsResolved)
                 {
                     Workspace.PendEdit(conflict.TargetLocalItem);

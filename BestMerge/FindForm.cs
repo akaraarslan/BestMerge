@@ -2,6 +2,7 @@
 using System;
 using System.ComponentModel;
 using System.Drawing;
+using System.Text;
 using System.Windows.Forms;
 using EnvDTE;
 using Microsoft.TeamFoundation.Client;
@@ -50,9 +51,9 @@ namespace BestMerge
             lwChangesets.Items.Clear();
         }
 
-        private void BtnGetChangesetsClick(object sender, EventArgs e)
+        private void BtnGetChangesets_Click(object sender, EventArgs e)
         {
-            SetUserAction(UserActionEnum.GettingChangesetList);
+            SetUserAction(UserActionEnum.GettingChangesetList, null);
             lwChangesets.Items.Clear();
             if (dpFrom.Checked)
                 _startDate = dpFrom.Value;
@@ -65,7 +66,7 @@ namespace BestMerge
             bwWorker.RunWorkerAsync("GettingChangesetList");
         }
 
-        private void CbTeamProjectSelectedIndexChanged(object sender, EventArgs e)
+        private void CbTeamProject_SelectedIndexChanged(object sender, EventArgs e)
         {
             lwChangesets.Items.Clear();
             if (cbTeamProject.SelectedItem == null)
@@ -76,7 +77,7 @@ namespace BestMerge
             cbTeamProjectContributors.DataSource = ((TfsProject)cbTeamProject.SelectedItem).Contributors;
         }
 
-        private void CbMergeFromSelectedIndexChanged(object sender, EventArgs e)
+        private void CbMergeFrom_SelectedIndexChanged(object sender, EventArgs e)
         {
             lwChangesets.Items.Clear();
             if (cbMergeFrom.SelectedItem == null)
@@ -86,7 +87,7 @@ namespace BestMerge
             cbMergeTo.DataSource = ((TfsBranch)cbMergeFrom.SelectedItem).ChildBranches;
         }
 
-        private void LwChangesetsColumnClick(object sender, ColumnClickEventArgs e)
+        private void LwChangesets_ColumnClick(object sender, ColumnClickEventArgs e)
         {
             if (e.Column != _sortColumn)
             {
@@ -101,14 +102,14 @@ namespace BestMerge
             lwChangesets.ListViewItemSorter = new ListViewItemComparer(e.Column, lwChangesets.Sorting);
         }
 
-        private void LwChangesetsDoubleClick(object sender, EventArgs e)
+        private void LwChangesets_DoubleClick(object sender, EventArgs e)
         {
             if (lwChangesets.SelectedItems.Count <= 0)
                 return;
             CallerPackage.OpenChangeSetDetails(int.Parse(lwChangesets.SelectedItems[0].Text));
         }
 
-        private void LwChangesetsKeyDown(object sender, KeyEventArgs e)
+        private void LwChangesets_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.KeyData == Keys.Delete && lwChangesets.SelectedItems.Count > 0)
             {
@@ -129,8 +130,7 @@ namespace BestMerge
                     !_tfs.ResolveConflicts(_toBranch, resolution, chkAutoCheckin.Checked,
                         lwChangesets.SelectedItems[0].SubItems[3].Text))
                 {
-                    _statusMessage = _tfs.ErrorMessage;
-                    SetUserAction(UserActionEnum.Error);
+                    SetUserAction(UserActionEnum.Error, _tfs.ErrorMessage);
                 }
                 else
                 {
@@ -145,8 +145,36 @@ namespace BestMerge
             }
         }
 
-        private void BwWorkerDoWork(object sender, DoWorkEventArgs e)
+        private void CopyButton_Click(object sender, EventArgs e)
         {
+            StringBuilder clipboardText = new StringBuilder();
+            if (lwChangesets.SelectedItems.Count > 0)
+            {
+                // Copy list of changesets
+                foreach (Changeset changeset in lwChangesets.SelectedItems)
+                {
+                    clipboardText.AppendLine(string.Format("{0}\t{1}\t{2}\t{3}", changeset.ChangesetId, changeset.Owner, changeset.CreationDate, changeset.Comment));
+                }
+            }
+
+            if (!string.IsNullOrEmpty(clipboardText.ToString()))
+            {
+                Clipboard.SetText(clipboardText.ToString());
+            }
+        }
+
+        private void BtnCancel_Click(object sender, EventArgs e)
+        {
+            if (bwWorker.IsBusy)
+            {
+                bwWorker.CancelAsync();
+            }
+        }
+
+        private void BwWorker_DoWork(object sender, DoWorkEventArgs e)
+        {
+            BackgroundWorker bw = sender as BackgroundWorker;
+
             var str = e.Argument.ToString();
             switch (str)
             {
@@ -154,30 +182,40 @@ namespace BestMerge
                     TfsLoad();
                     break;
                 case "GettingChangesetList":
-                    TfsGettingChangeSetList();
+                    TfsGettingChangeSetList(bw);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
             }
+
+            if (bw.CancellationPending)
+            {
+                e.Cancel = true;
+            }
         }
 
-        private void TfsGettingChangeSetList()
+        private void TfsGettingChangeSetList(BackgroundWorker bw)
         {
             var tfsMergeCanditateList =
                 _tfs.GetMergeCandidates(_fromBranch, _toBranch, _owner, _startDate, _endDate, _criteria);
 
             foreach (var tfsMergeCandidate in tfsMergeCanditateList)
             {
+                if (bw.CancellationPending)
+                {
+                    break;
+                }
+
                 if (lwChangesets.InvokeRequired)
                 {
                     var c1 = tfsMergeCandidate;
-                    lwChangesets.Invoke((Action) (() => lwChangesets.Items.Add(new ListViewItem(new string[4]
-                    {
+                    lwChangesets.Invoke((Action)(() => lwChangesets.Items.Add(new ListViewItem(new string[4]
+                   {
                         c1.ChangesetId.ToString(CultureInfo.InvariantCulture),
                         c1.Owner,
                         c1.CreationDate.ToString(),
                         c1.Comment
-                    }))));
+                   }))));
                 }
                 else
                     lwChangesets.Items.Add(new ListViewItem(new string[4]
@@ -200,28 +238,37 @@ namespace BestMerge
                 cbTeamProjectCollection.DataSource = _tfs.TeamProjectCollections;
         }
 
-        private void BwWorkerRunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+        private void BwWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
-            SetUserAction(UserActionEnum.Ready);
+            if (e.Cancelled)
+            {
+                SetUserAction(UserActionEnum.Cancelled, "Search Cancelled");
+            }
+            else if (e.Error != null)
+            {
+                SetUserAction(UserActionEnum.Error, String.Format("An error occurred: {0}", e.Error.Message));
+            }
+            else
+            {
+                SetUserAction(UserActionEnum.Ready);
+            }
         }
 
         public void FindFormLoad(object sender, EventArgs e)
         {
             if (string.IsNullOrEmpty(DefaultCollectionUrl))
             {
-                //TODO picker is not work, that can be dependent assemblies
                 var teamProjectPicker = new TeamProjectPicker(TeamProjectPickerMode.NoProject, false);
-                var num = (int) teamProjectPicker.ShowDialog();
+                teamProjectPicker.ShowDialog();
                 var projectCollection = teamProjectPicker.SelectedTeamProjectCollection;
                 if (projectCollection != null)
-                    DefaultCollectionUrl = projectCollection.ConfigurationServer.Uri.ToString(); 
-            } 
+                    DefaultCollectionUrl = projectCollection.ConfigurationServer.Uri.ToString();
+            }
 
             if (string.IsNullOrEmpty(DefaultCollectionUrl))
             {
-                _statusMessage = "No TFS connection info founded.";
                 btnGetChangesets.Enabled = false;
-                SetUserAction(UserActionEnum.Error);
+                SetUserAction(UserActionEnum.Error, "No TFS connection info founded.");
             }
             else
             {
@@ -231,9 +278,9 @@ namespace BestMerge
                 cbTeamProjectCollection.ValueMember = "InstanceId";
                 bwWorker.RunWorkerAsync("Load");
             }
-        } 
+        }
 
-        private void SetUserAction(UserActionEnum action)
+        private void SetUserAction(UserActionEnum action, string statusMessage = "")
         {
             toolBarText.ResetForeColor();
             switch (action)
@@ -242,22 +289,27 @@ namespace BestMerge
                     toolBarProcess.Style = ProgressBarStyle.Continuous;
                     toolBarText.Text = "Ready to action.";
                     btnGetChangesets.Enabled = true;
+                    btnCancel.Enabled = false;
                     break;
                 case UserActionEnum.FormLoading:
                     toolBarProcess.Style = ProgressBarStyle.Marquee;
                     toolBarText.Text = string.Format("Connecting to TFS: {0}", DefaultCollectionUrl);
                     btnGetChangesets.Enabled = false;
+                    btnCancel.Enabled = false;
                     break;
                 case UserActionEnum.GettingChangesetList:
                     toolBarProcess.Style = ProgressBarStyle.Marquee;
                     toolBarText.Text = "Getting changeset list...";
                     btnGetChangesets.Enabled = false;
+                    btnCancel.Enabled = true;
                     break;
+                case UserActionEnum.Cancelled:
                 case UserActionEnum.Error:
                     toolBarProcess.Style = ProgressBarStyle.Continuous;
                     toolBarText.ForeColor = Color.Red;
-                    toolBarText.Text = _statusMessage;
+                    toolBarText.Text = statusMessage;
                     btnGetChangesets.Enabled = true;
+                    btnCancel.Enabled = false;
                     break;
             }
         }
@@ -266,7 +318,13 @@ namespace BestMerge
             Ready,
             FormLoading,
             GettingChangesetList,
-            Error
+            Error,
+            Cancelled
+        }
+
+        private void BwWorker_ProgressChanged(object sender, ProgressChangedEventArgs e)
+        {
+            throw new NotImplementedException();
         }
     }
 
